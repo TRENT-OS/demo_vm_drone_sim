@@ -1,0 +1,14 @@
+/*
+ * Copyright (C) 2021-2023, HENSOLDT Cyber GmbH
+ */
+ 
+#include <if_OS_Socket.camkes>
+ 
+component SimCoupler {
+	// Context mutex
+    has mutex SharedResourceMutex;
+
+	// Networking
+    IF_OS_SOCKET_USE(socket_GCS_nws)
+    IF_OS_SOCKET_USE(socket_PX4_nws)
+}

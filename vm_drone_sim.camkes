@@ -1,0 +1,306 @@
+/*
+ * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+#pragma once
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+
+import <vm-connectors.camkes>;
+import <seL4VMDTBPassthrough.idl4>;
+import <Batch.idl4>;
+import <PutChar.idl4>;
+import <GetChar.idl4>;
+import <VirtQueues.idl4>;
+import <FileServerInterface.camkes>;
+
+import <if_OS_Logger.camkes>;
+
+//------------------------------------------
+#include "system_config.h"
+
+//----------------------------------------------------------------------
+// VM - Components
+//----------------------------------------------------------------------
+
+struct vswitch_mapping {
+       string mac_addr;
+       int send_id;
+       int recv_id;
+};
+
+#include <configurations/vm.h>
+component VM {
+    VM_INIT_DEF()
+    attribute vswitch_mapping vswitch_layout[] = [];
+    attribute string vswitch_mac_address = "";
+}
+
+import <VirtQueue/VirtQueue.camkes>;
+import <FileServer/FileServer.camkes>;
+
+//----------------------------------------------------------------------
+// SerialFilter
+//----------------------------------------------------------------------
+ 
+#include "components/SerialFilter/SerialFilter.camkes"
+
+//----------------------------------------------------------------------
+// SimCoupler
+//----------------------------------------------------------------------
+ 
+#include "components/SimCoupler/SimCoupler.camkes"
+
+//----------------------------------------------------------------------
+// NIC chanmux
+//----------------------------------------------------------------------
+#include "NIC_ChanMux/NIC_ChanMux.camkes"
+NIC_ChanMux_COMPONENT_DEFINE(ChanMuxNIC, NIC_DRIVER_RINGBUFFER_SIZE)
+
+#include "ChanMux/ChanMux_UART.camkes"
+ChanMux_UART_COMPONENT_DEFINE(
+    ChanMux_UART,
+    chanMuxNIC, data,
+    chanMuxNIC, ctrl
+)
+
+//----------------------------------------------------------------------
+// NIC virtio
+//----------------------------------------------------------------------
+#include <if_OS_Nic.camkes>
+
+component VirtioNIC {
+    IF_OS_NIC_PROVIDE(nic, NIC_DRIVER_RINGBUFFER_SIZE)
+    uses VirtQueueDev recv;
+    uses VirtQueueDrv send;
+    emits Callback self;
+    consumes Callback virtio_event;
+    // maybe uses      if_OS_Logger logServer_rpc;
+    maybe dataport  Buf          logServer_port;
+}
+
+//----------------------------------------------------------------------
+// Network Stack - Virtionet
+//----------------------------------------------------------------------
+ 
+#include "NetworkStack_PicoTcp/camkes/NetworkStack_PicoTcp.camkes"
+NetworkStack_PicoTcp_COMPONENT_DEFINE(
+    NetworkStack_GCS,
+    NIC_DRIVER_RINGBUFFER_SIZE,
+    NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES
+)
+
+//----------------------------------------------------------------------
+// Network Stack - PX4
+//----------------------------------------------------------------------
+
+NetworkStack_PicoTcp_COMPONENT_DEFINE(
+    NetworkStack_PX4,
+    NIC_DRIVER_RINGBUFFER_SIZE,
+    NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
+
+//----------------------------------------------------------------------
+// TimeServer
+//----------------------------------------------------------------------
+ 
+#include "TimeServer/camkes/TimeServer.camkes"
+TimeServer_COMPONENT_DEFINE(TimeServer)
+
+// Platform specific Configuration
+#include <plat.camkes>
+
+assembly {
+    composition {
+        //----------------------------------------------------------------------
+        // SerialFilter
+        //----------------------------------------------------------------------
+ 
+		component   SerialFilter          serialFilter;
+
+        //----------------------------------------------------------------------
+        // SimCoupler
+        //----------------------------------------------------------------------
+ 
+
+        component   SimCoupler            simCoupler;
+        
+        //----------------------------------------------------------------------
+        // VM
+    	//----------------------------------------------------------------------
+		component FileServer fileServer;
+
+        component VM vm0;
+        connection seL4VMDTBPassthrough vm0_dtb(
+            from vm0.dtb_self,
+            to   vm0.dtb
+        );
+        connection seL4GlobalAsynch vm0_notify_ready(
+            from vm0.notification_ready_connector,
+            to   vm0.notification_ready
+        );
+        connection seL4RPCDataport vm0_fs(
+            from vm0.fs,
+            to   fileServer.fs_ctrl
+        );
+
+        //----------------------------------------------------------------------
+        // Network Drivers - NIC
+        //----------------------------------------------------------------------
+        
+        component VirtioNIC virtioNIC;
+    
+        component ChanMuxNIC chanMuxNIC;
+    
+        ChanMux_UART_INSTANCE_CONNECT_CLIENT(
+            chanMux_UART,
+            chanMuxNIC, data, ctrl
+        )
+
+        //----------------------------------------------------------------------
+        // VirtQueues
+        //----------------------------------------------------------------------
+        
+        component VirtQueueInit virtio_vqinit0;
+        component VirtQueueInit virtio_vqinit1;
+
+        connection seL4VirtQueues virtio_virtq_conn0(
+            to virtio_vqinit0.init,
+            from virtioNIC.send,
+            from vm0.recv
+        );
+        connection seL4VirtQueues virtio_virtq_conn1(
+            to virtio_vqinit1.init,
+            from virtioNIC.recv,
+            from vm0.send
+        );
+        connection seL4GlobalAsynchCallback virtio_global_callback(
+            from virtioNIC.self,
+            to virtioNIC.virtio_event
+        );
+
+		//----------------------------------------------------------------------
+        // Network Stack - Virtionet
+        //----------------------------------------------------------------------
+        component NetworkStack_GCS    nwStack_GCS;
+ 
+        NetworkStack_PicoTcp_INSTANCE_CONNECT(
+            nwStack_GCS,
+            virtioNIC
+        )
+
+        
+		NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
+            nwStack_GCS,
+            serialFilter,   socket_GCS_nws,
+            simCoupler,     socket_GCS_nws
+        )
+
+		//----------------------------------------------------------------------
+        // Network Stack - Px4
+        //----------------------------------------------------------------------
+        component NetworkStack_PX4   nwStack_PX4;
+ 
+        NetworkStack_PicoTcp_INSTANCE_CONNECT(
+            nwStack_PX4,
+            chanMuxNIC
+        )
+
+        
+		NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
+            nwStack_PX4,
+            serialFilter, socket_PX4_nws,
+            simCoupler, socket_PX4_nws
+        )
+
+		//----------------------------------------------------------------------
+        // TimeServer
+        //----------------------------------------------------------------------
+        component TimeServer timeServer;
+ 
+        TimeServer_INSTANCE_CONNECT_CLIENTS(
+            timeServer,
+            nwStack_GCS.timeServer_rpc, nwStack_GCS.timeServer_notify,
+            nwStack_PX4.timeServer_rpc, nwStack_PX4.timeServer_notify
+        )
+
+        
+
+        //----------------------------------------------------------------------
+        // ChanMux + UART
+        //----------------------------------------------------------------------
+        component ChanMux_UART chanMux_UART;
+        component UART_CHANMUX uart;
+        ChanMux_UART_INSTANCE_CONNECT(chanMux_UART, uart)
+
+    }
+    configuration {
+
+        ramDisk.storage_size = 2 * 1024 * 1024;
+
+        fileServer.heap_size = 0x200000; // 128 KiB seems enough
+
+        // see also plat.camkes for more config values
+        vm0.num_vcpus               = 1;
+        vm0.base_prio               = 103;
+        vm0._priority               = 104;
+
+        vm0.num_extra_frame_caps    = 0;
+        vm0.extra_frame_map_address = 0;
+        vm0.cnode_size_bits         = 23;
+        vm0.simple_untyped24_pool   = 12;
+        vm0.asid_pool               = true;
+        vm0.global_endpoint_base    = 1 << 27;
+        vm0.simple                  = true;
+        vm0.sem_value               = 0;
+        vm0.heap_size               = 0x300000;
+        vm0.fs_shmem_size           = 0x100000;
+        
+        vm0.recv_id = 0;
+        vm0.recv_shmem_size = 32768;
+        vm0.send_id = 1;
+        vm0.send_shmem_size = 32768;
+        vm0.vswitch_mac_address = "02:00:00:00:AA:01";
+        vm0.vswitch_layout = [{"mac_addr": "02:00:00:00:AA:02", "recv_id": 0, "send_id":1}];
+
+        virtioNIC.recv_id = 0;
+        virtioNIC.recv_shmem_size = 32768;
+        virtioNIC.send_id = 1;
+        virtioNIC.send_shmem_size = 32768;
+        virtioNIC.vswitch_mac_address = "02:00:00:00:AA:02";
+
+        TimeServer_CLIENT_ASSIGN_BADGES(
+            nwStack_GCS.timeServer_rpc,
+            nwStack_PX4.timeServer_rpc
+        )
+
+        ChanMux_UART_CLIENT_ASSIGN_BADGES(
+            chanMuxNIC.chanMux_Rpc
+        )
+
+        // Network stack
+        NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
+            serialFilter, socket_GCS_nws,
+            simCoupler, socket_GCS_nws
+        )
+
+        NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
+            serialFilter, socket_PX4_nws,
+            simCoupler, socket_PX4_nws
+        )
+
+        NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(
+            nwStack_GCS,
+            1,
+            1
+        )
+
+        NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(
+            nwStack_PX4,
+            1,
+            1
+        )
+    }
+}
