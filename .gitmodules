@@ -4,3 +4,6 @@
 [submodule "libs/mavgenlib"]
 	path = libs/mavgenlib
 	url = ../../ext/mavlink_c_library_v2.git
+[submodule "camkes-vm-images"]
+	path = camkes-vm-images
+	url = ../../ext/camkes-vm-images.git
