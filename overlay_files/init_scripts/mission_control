@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
+
+/etc/test.sh
+
+echo "Takeoff and Landing"
+
+ls /etc
+
+/etc/takeoff_and_land udp://192.168.1.2:7000
+
+echo "Done"

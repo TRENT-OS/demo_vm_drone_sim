@@ -59,13 +59,8 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-linux/vm-linux-helpers.cmake")
 
 
 # images for the selected platform
-#set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/linux")
-#set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/rootfs.cpio.gz")
-#set(VM_IMG_DTB "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/linux-dtb")
-
-set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/qemu-arm-virt/linux")
-set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/qemu-arm-virt/rootfs.cpio.gz")
-
+set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/linux")
+set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/rootfs.cpio.gz")
 
 # patch root-fs
 AddOverlayDirToRootfs(
@@ -84,18 +79,12 @@ AddFileToOverlayDir(
     overlay
 )
 AddFileToOverlayDir(
-    "S90ping_test"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/ping_test"
+    "S90mission_control"
+    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/mission_control"
     "etc/init.d"
     overlay
 )
 
-AddFileToOverlayDir(
-    "fly_mission"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/fly_mission"
-    "etc/"
-    overlay
-)
 AddFileToOverlayDir(
     "takeoff_and_land"
     "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/takeoff_and_land"
@@ -104,8 +93,8 @@ AddFileToOverlayDir(
 )
 
 AddFileToOverlayDir(
-    "test.sh"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/test.sh"
+    "fly_mission"
+    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/fly_mission"
     "etc/"
     overlay
 )
