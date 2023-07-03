@@ -14,6 +14,10 @@
 #sleep 30
 #nc 192.168.1.1 5555 -l -u
 #/etc/fly_mission udp://192.168.1.2:7000 
+
+
+ls -lah /etc/takeoff_and_land
+
 /etc/takeoff_and_land udp://192.168.1.2:7000
 
 echo "Done"

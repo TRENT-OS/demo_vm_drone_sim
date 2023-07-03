@@ -25,6 +25,7 @@ set(LibUSB OFF CACHE BOOL "" FORCE)
 set(VmPCISupport ON CACHE BOOL "" FORCE)
 set(VmVirtioConsole OFF CACHE BOOL "" FORCE)
 set(VmVirtioNetVirtqueue ON CACHE BOOL "" FORCE)
+#set(VmVirtUartPL011 ON CACHE BOOL "" FORCE)
 
 include("plat/${PLATFORM}/plat.cmake")
 
@@ -58,14 +59,18 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-linux/vm-linux-helpers.cmake")
 
 
 # images for the selected platform
-set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/vm-images/${PLATFORM}/linux")
-set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/vm-images/${PLATFORM}/rootfs.cpio.gz")
+#set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/linux")
+#set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/rootfs.cpio.gz")
+#set(VM_IMG_DTB "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/${PLATFORM}/linux-dtb")
+
+set(VM_IMG_LINUX "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/qemu-arm-virt/linux")
+set(VM_IMG_ROOTFS "${CMAKE_CURRENT_SOURCE_DIR}/camkes-vm-images/qemu-arm-virt/rootfs.cpio.gz")
 
 
 # patch root-fs
 AddOverlayDirToRootfs(
     overlay
-    "${CMAKE_CURRENT_SOURCE_DIR}/vm-images/${PLATFORM}/rootfs.cpio.gz"
+	${VM_IMG_ROOTFS}
     "buildroot"
     "rootfs_install"
     VM_IMG_ROOTFS_PATCHED
@@ -99,11 +104,26 @@ AddFileToOverlayDir(
 )
 
 AddFileToOverlayDir(
+    "test.sh"
+    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/test.sh"
+    "etc/"
+    overlay
+)
+
+AddFileToOverlayDir(
     "libmavsdk.so.1"
     "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/lib/libmavsdk.so.1"
     "lib/"
     overlay
 )
+
+#UpdateDtbFromInitrd(
+#    "${VM_IMG_DTB}"
+#    "${VM_IMG_ROOTFS}"
+#    "0x4d700000" # initrd start
+#    target_dtb_gen
+#    VM_IMG_DTB_PATCHED
+#)
 
 
 # Since this needs the file VM_IMG_ROOTFS_PATCHED anyway, there is an implicit
@@ -114,6 +134,9 @@ DefineCAmkESVMFileServer(
     FILES
         "linux:${VM_IMG_LINUX}"
         "linux-initrd:${VM_IMG_ROOTFS_PATCHED}"
+    #     "linux-dtb:${VM_IMG_DTB_PATCHED}"
+    # DEPENDS
+    #     target_dtb_gen
 )
 
 #-------------------------------------------------------------------------------

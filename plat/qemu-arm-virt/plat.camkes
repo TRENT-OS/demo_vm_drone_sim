@@ -73,8 +73,8 @@ assembly {
             "clean_cache": false, /* QEMU does not emulate caches anyway */
 
             "provide_initrd": true,
-            "generate_dtb": true,
-            "provide_dtb": false,
+            "generate_dtb": false,
+            "provide_dtb": true,
 
             "kernel_name": "linux",
             "initrd_name": "linux-initrd",
