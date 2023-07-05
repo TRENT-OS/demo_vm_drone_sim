@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#pragma once
-
 import <std_connector.camkes>;
 import <global-connectors.camkes>;
 
@@ -42,11 +40,13 @@ component VM {
 import <VirtQueue/VirtQueue.camkes>;
 import <FileServer/FileServer.camkes>;
 
+
 //----------------------------------------------------------------------
 // SerialFilter
 //----------------------------------------------------------------------
  
 #include "components/SerialFilter/SerialFilter.camkes"
+
 
 //----------------------------------------------------------------------
 // SimCoupler
@@ -54,22 +54,18 @@ import <FileServer/FileServer.camkes>;
  
 #include "components/SimCoupler/SimCoupler.camkes"
 
-//----------------------------------------------------------------------
-// NIC chanmux
-//----------------------------------------------------------------------
-#include "NIC_ChanMux/NIC_ChanMux.camkes"
-NIC_ChanMux_COMPONENT_DEFINE(ChanMuxNIC, NIC_DRIVER_RINGBUFFER_SIZE)
 
-#include "ChanMux/ChanMux_UART.camkes"
-ChanMux_UART_COMPONENT_DEFINE(
-    ChanMux_UART,
-    chanMuxNIC, data,
-    chanMuxNIC, ctrl
-)
+//----------------------------------------------------------------------
+// Ethernet NIC
+//----------------------------------------------------------------------
+
+#include "plat_nic.camkes"
+
 
 //----------------------------------------------------------------------
 // NIC virtio
 //----------------------------------------------------------------------
+
 #include <if_OS_Nic.camkes>
 
 component VirtioNIC {
@@ -82,6 +78,7 @@ component VirtioNIC {
     maybe dataport  Buf          logServer_port;
 }
 
+
 //----------------------------------------------------------------------
 // Network Stack - Virtionet
 //----------------------------------------------------------------------
@@ -93,6 +90,7 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES
 )
 
+
 //----------------------------------------------------------------------
 // Network Stack - PX4
 //----------------------------------------------------------------------
@@ -102,12 +100,14 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
 
+
 //----------------------------------------------------------------------
 // TimeServer
 //----------------------------------------------------------------------
  
 #include "TimeServer/camkes/TimeServer.camkes"
 TimeServer_COMPONENT_DEFINE(TimeServer)
+
 
 // Platform specific Configuration
 #include <plat.camkes>
@@ -151,13 +151,8 @@ assembly {
         //----------------------------------------------------------------------
         
         component VirtioNIC virtioNIC;
-    
-        component ChanMuxNIC chanMuxNIC;
-    
-        ChanMux_UART_INSTANCE_CONNECT_CLIENT(
-            chanMux_UART,
-            chanMuxNIC, data, ctrl
-        )
+
+        PLAT_NIC_INSTANCE(platNIC)
 
         //----------------------------------------------------------------------
         // VirtQueues
@@ -205,7 +200,7 @@ assembly {
  
         NetworkStack_PicoTcp_INSTANCE_CONNECT(
             nwStack_PX4,
-            chanMuxNIC
+            platNIC
         )
 
         
@@ -225,15 +220,6 @@ assembly {
             nwStack_GCS.timeServer_rpc, nwStack_GCS.timeServer_notify,
             nwStack_PX4.timeServer_rpc, nwStack_PX4.timeServer_notify
         )
-
-        
-
-        //----------------------------------------------------------------------
-        // ChanMux + UART
-        //----------------------------------------------------------------------
-        component ChanMux_UART chanMux_UART;
-        component UART_CHANMUX uart;
-        ChanMux_UART_INSTANCE_CONNECT(chanMux_UART, uart)
 
     }
     configuration {
@@ -272,12 +258,9 @@ assembly {
         virtioNIC.vswitch_mac_address = "02:00:00:00:AA:02";
 
         TimeServer_CLIENT_ASSIGN_BADGES(
+            PLAT_OPTIONAL_TIMESERVER_CLIENTS_NETWORK_DRIVER_BADGES(platNIC)
             nwStack_GCS.timeServer_rpc,
             nwStack_PX4.timeServer_rpc
-        )
-
-        ChanMux_UART_CLIENT_ASSIGN_BADGES(
-            chanMuxNIC.chanMux_Rpc
         )
 
         // Network stack
@@ -302,5 +285,11 @@ assembly {
             1,
             1
         )
+
+        PLAT_NIC_CONFIG(platNIC)
+
+        nwStack_GCS.priority = 105;
+        nwStack_PX4.priority = 105;
+        serialFilter.priority = 105;
     }
 }

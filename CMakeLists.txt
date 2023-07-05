@@ -132,6 +132,9 @@ DefineCAmkESVMFileServer(
 # Add the nic driver for virtio
 include("components/NIC_virtio/NIC_virtio.cmake")
 
+# Add platform specific nic
+include("plat/${PLATFORM}/plat_nic.cmake")
+
 NIC_virtio_DeclareCAmkESComponent(
     VirtioNIC
 )
@@ -198,17 +201,6 @@ DeclareCAmkESComponent(
 		os_socket_client
 )
 
-NIC_ChanMux_DeclareCAmkESComponent(
-    ChanMuxNIC
-    CHANMUX_CHANNEL_NIC_CTRL
-    CHANMUX_CHANNEL_NIC_DATA
-)
-
-ChanMux_UART_DeclareCAmkESComponents(
-    ChanMux_UART
-    components/ChanMux/ChanMux_config.c
-    system_config
-)
 
 #-------------------------------------------------------------------------------
 os_sdk_create_CAmkES_system("vm_drone_sim.camkes")

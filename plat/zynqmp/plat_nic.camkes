@@ -1,0 +1,21 @@
+/*
+ *  Network API Test System, ZynqMP board configuration
+ *
+ *  Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
+#pragma once
+
+#include "NIC_Zynq/NIC_ZYNQ.camkes"
+
+#define PLAT_NIC_INSTANCE(_nic_) \
+    NIC_ZYNQ_INSTANCE(_nic_)
+
+#define PLAT_NIC_CONFIG(_nic_) \
+    NIC_ZYNQ_MEMORY_CONFIG(_nic_)
+
+/* macros used to connect platform specific components to the timerserver.
+ * Intentionally left empty, as this is not needed. */
+#define PLAT_OPTIONAL_TIMESERVER_CLIENTS_NETWORK_DRIVER(_nic_)
+
+#define PLAT_OPTIONAL_TIMESERVER_CLIENTS_NETWORK_DRIVER_BADGES(_nic_)

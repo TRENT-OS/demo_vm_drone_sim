@@ -103,10 +103,10 @@ socket_event_callback(
 
     for (int i = 0; i < numberOfSocketsWithEvents; i++)
     {
-        char buf[4096] = {0};
+        char buf[4096] = { 0 };
         size_t len_requested = sizeof(buf);
         size_t len_actual = 0;
-        OS_Socket_Addr_t srcAddr = {0};
+        OS_Socket_Addr_t srcAddr = { 0 };
 
         err = SharedResourceMutex_lock();
         if (err != OS_SUCCESS)
@@ -118,7 +118,7 @@ socket_event_callback(
         err = OS_Socket_recvfrom(socket_from->handle, buf, len_requested, &len_actual, &srcAddr);
         if (err != OS_SUCCESS)
         {
-            Debug_LOG_TRACE("OS_Socket_recvfrom() failed, code %d", err);
+            Debug_LOG_ERROR("OS_Socket_recvfrom() failed, code %d", err);
             goto reset;
         }
 
@@ -132,9 +132,12 @@ socket_event_callback(
 
         if (socket_from->filter) {
             //Applying filter to data from GCS -> PX4
+            printf("Sending message to PX4\n");
             if (filter_mavlink_message(buf, len_actual)) {
                 Debug_LOG_ERROR("Packet dropped: violation of filter rules");
             }
+        } else {
+            printf("Sending message to VM\n");
         }
 
         err = OS_Socket_sendto(socket_to->handle, buf, len_actual, &len_actual, &socket_to->addr_partner); 
@@ -167,13 +170,15 @@ reset:
     if (err != OS_SUCCESS)
     {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
+    } else {
+        Debug_LOG_ERROR("Callback registered");
     }
-    ASSERT_EQ_OS_ERR(OS_SUCCESS, err);
 }
 
 
 void socket_GCS_event_callback(void* ctx)
 {
+    Debug_LOG_ERROR("Socket GCS callback");
     Debug_ASSERT(NULL != ctx);
     socket_ctx_t * socket_from = ctx; 
     Debug_ASSERT(socket_from != &socket_PX4);
@@ -184,6 +189,7 @@ void socket_GCS_event_callback(void* ctx)
 
 void socket_PX4_event_callback(void* ctx) 
 {
+    Debug_LOG_ERROR("Socket PX4 callback");
     Debug_ASSERT(NULL != ctx);
     socket_ctx_t * socket_from = ctx;
     Debug_ASSERT(socket_from != &socket_GCS);
@@ -256,6 +262,6 @@ void socket_init(socket_ctx_t *socket_ctx) {
 
 void post_init(void)
 {
-    socket_init(&socket_GCS);
     socket_init(&socket_PX4);
+    socket_init(&socket_GCS);
 }
