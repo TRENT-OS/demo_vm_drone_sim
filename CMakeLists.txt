@@ -144,13 +144,13 @@ TimeServer_DeclareCAmkESComponent(
 )
 
 NetworkStack_PicoTcp_DeclareCAmkESComponent(
-    NetworkStack_GCS
+    NetworkStack_VM
     C_FLAGS
         -DNetworkStack_PicoTcp_USE_HARDCODED_IPADDR
-        -DDEV_ADDR=GCS_TRENTOS_ADDR
-        -DGATEWAY_ADDR=GCS_GATEWAY_ADDR
+        -DDEV_ADDR=VM_TRENTOS_ADDR
+        -DGATEWAY_ADDR=VM_GATEWAY_ADDR
         -DSUBNET_MASK=ETH_SUBNET_MASK
-        -DOS_NETWORK_MAXIMUM_SOCKET_NO=2
+        -DOS_NETWORK_MAXIMUM_SOCKET_NO=8
 )
 
 NetworkStack_PicoTcp_DeclareCAmkESComponent(
@@ -160,7 +160,7 @@ NetworkStack_PicoTcp_DeclareCAmkESComponent(
         -DDEV_ADDR=PX4_TRENTOS_ADDR
         -DGATEWAY_ADDR=PX4_GATEWAY_ADDR
         -DSUBNET_MASK=ETH_SUBNET_MASK
-        -DOS_NETWORK_MAXIMUM_SOCKET_NO=2
+        -DOS_NETWORK_MAXIMUM_SOCKET_NO=8
 )
 
 DeclareCAmkESComponent(
@@ -176,7 +176,7 @@ DeclareCAmkESComponent(
         -Wall
         -Werror
         -Wno-address-of-packed-member # ignore MAVLink errors according to https://mavlink.io/en/mavgen_c/#build-warnings 
-        -DOS_NETWORK_MAXIMUM_SOCKET_NO=1
+        -DOS_NETWORK_MAXIMUM_SOCKET_NO=8
     LIBS
         system_config
         lib_debug
@@ -192,7 +192,7 @@ DeclareCAmkESComponent(
     C_FLAGS
         -Wall
         -Werror
-        -DOS_NETWORK_MAXIMUM_SOCKET_NO=1
+        -DOS_NETWORK_MAXIMUM_SOCKET_NO=2
     LIBS
         system_config
         lib_debug

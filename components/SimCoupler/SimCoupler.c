@@ -40,14 +40,14 @@ simcoupler_ctx_t simcoupler_ctx = {
         .addr = PX4_TRENTOS_ADDR,
         .port = PX4_TRENTOS_PORT_SIMCOUPLER
     },
-    .socket_gcs_send = IF_OS_SOCKET_ASSIGN(socket_GCS_nws),
+    .socket_gcs_send = IF_OS_SOCKET_ASSIGN(socket_VM_nws),
     .addr_gcs_trentos = {
-        .addr = GCS_TRENTOS_ADDR,
-        .port = GCS_TRENTOS_PORT_SIMCOUPLER
+        .addr = VM_TRENTOS_ADDR,
+        .port = VM_TRENTOS_PORT_SIMCOUPLER
     },
     .addr_gcs_vm = {
-        .addr = GCS_VM_ADDR,
-        .port = GCS_VM_PORT_SIMCOUPLER
+        .addr = VM_VM_ADDR,
+        .port = VM_VM_PORT_SIMCOUPLER
     }
 };
 

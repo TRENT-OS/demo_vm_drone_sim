@@ -85,7 +85,7 @@ component VirtioNIC {
  
 #include "NetworkStack_PicoTcp/camkes/NetworkStack_PicoTcp.camkes"
 NetworkStack_PicoTcp_COMPONENT_DEFINE(
-    NetworkStack_GCS,
+    NetworkStack_VM,
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES
 )
@@ -179,18 +179,18 @@ assembly {
 		//----------------------------------------------------------------------
         // Network Stack - Virtionet
         //----------------------------------------------------------------------
-        component NetworkStack_GCS    nwStack_GCS;
+        component NetworkStack_VM    nwStack_VM;
  
         NetworkStack_PicoTcp_INSTANCE_CONNECT(
-            nwStack_GCS,
+            nwStack_VM,
             virtioNIC
         )
 
         
 		NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
-            nwStack_GCS,
-            serialFilter,   socket_GCS_nws,
-            simCoupler,     socket_GCS_nws
+            nwStack_VM,
+            serialFilter,   socket_VM_nws,
+            simCoupler,     socket_VM_nws
         )
 
 		//----------------------------------------------------------------------
@@ -217,7 +217,7 @@ assembly {
  
         TimeServer_INSTANCE_CONNECT_CLIENTS(
             timeServer,
-            nwStack_GCS.timeServer_rpc, nwStack_GCS.timeServer_notify,
+            nwStack_VM.timeServer_rpc, nwStack_VM.timeServer_notify,
             nwStack_PX4.timeServer_rpc, nwStack_PX4.timeServer_notify
         )
 
@@ -259,14 +259,14 @@ assembly {
 
         TimeServer_CLIENT_ASSIGN_BADGES(
             PLAT_OPTIONAL_TIMESERVER_CLIENTS_NETWORK_DRIVER_BADGES(platNIC)
-            nwStack_GCS.timeServer_rpc,
+            nwStack_VM.timeServer_rpc,
             nwStack_PX4.timeServer_rpc
         )
 
         // Network stack
         NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
-            serialFilter, socket_GCS_nws,
-            simCoupler, socket_GCS_nws
+            serialFilter, socket_VM_nws,
+            simCoupler, socket_VM_nws
         )
 
         NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
@@ -275,20 +275,20 @@ assembly {
         )
 
         NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(
-            nwStack_GCS,
-            1,
-            1
+            nwStack_VM,
+            4,
+            4
         )
 
         NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(
             nwStack_PX4,
-            1,
-            1
+            4,
+            4
         )
 
         PLAT_NIC_CONFIG(platNIC)
 
-        nwStack_GCS.priority = 105;
+        nwStack_VM.priority = 105;
         nwStack_PX4.priority = 105;
         serialFilter.priority = 105;
     }

@@ -52,15 +52,15 @@
 #define ETH_SUBNET_MASK "255.255.255.0"
 
 // VM <--> TRENTOS
-#define GCS_VM_ADDR "192.168.1.1"
-//GCS_VM_PORT -> not defined as this is dynamic
-#define GCS_VM_PORT_SIMCOUPLER 5555
+#define VM_VM_ADDR "192.168.1.1"
+//VM_VM_PORT -> not defined as this is dynamic
+#define VM_VM_PORT_SIMCOUPLER 5555
 
-#define GCS_TRENTOS_ADDR "192.168.1.2"
-#define GCS_TRENTOS_PORT 7000
-#define GCS_TRENTOS_PORT_SIMCOUPLER 5555
+#define VM_TRENTOS_ADDR "192.168.1.2"
+#define VM_TRENTOS_PORT 7000
+#define VM_TRENTOS_PORT_SIMCOUPLER 5555
 
-#define GCS_GATEWAY_ADDR "192.168.1.3"
+#define VM_GATEWAY_ADDR "192.168.1.3"
 
 // TRENTOS <--> PX4(Linux Host)
 #define PX4_TRENTOS_ADDR "10.0.0.11"

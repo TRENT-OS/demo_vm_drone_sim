@@ -9,6 +9,6 @@ component SerialFilter {
     has mutex SharedResourceMutex;
 
 	// Networking
-    IF_OS_SOCKET_USE(socket_GCS_nws)
+    IF_OS_SOCKET_USE(socket_VM_nws)
     IF_OS_SOCKET_USE(socket_PX4_nws)
 }
