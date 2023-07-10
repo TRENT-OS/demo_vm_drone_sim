@@ -93,13 +93,6 @@ AddFileToOverlayDir(
 )
 
 AddFileToOverlayDir(
-    "fly_mission"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/fly_mission"
-    "etc/"
-    overlay
-)
-
-AddFileToOverlayDir(
     "libmavsdk.so.1"
     "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/lib/libmavsdk.so.1"
     "lib/"
