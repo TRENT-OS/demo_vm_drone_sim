@@ -9,4 +9,4 @@ typedef struct {
 } coordinate_t;
 
 
-OS_Error_t filter_mavlink_message(char *, size_t);
+void filter_mavlink_message(char *, size_t *, char * , size_t *);

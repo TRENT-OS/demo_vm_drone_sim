@@ -75,8 +75,6 @@ socket_ctx_t socket_PX4 = {
     .conn_init = false,
 };
 
-
-
 //----------------------------------------------------------------------
 // Init helper functions
 //----------------------------------------------------------------------
@@ -126,12 +124,10 @@ OS_Error_t init_socket(socket_ctx_t *socket_ctx) {
               &(socket_ctx->socket),
               socket_ctx->callback,
               (void*) socket_ctx);
-    if (err)
-    {
+    if (err) {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
     }
 
-    
     return err;
 }
 
@@ -172,8 +168,7 @@ void socket_PX4_event_callback(void* ctx)
         memcpy(&event, &eventBuffer[i], sizeof(event));
 
         err = SharedResourceMutex_lock();
-        if (err)
-        {
+        if (err) {
             Debug_LOG_ERROR("Mutex lock failed, code %d", err);
             return;
         }
@@ -227,8 +222,7 @@ void socket_PX4_event_callback(void* ctx)
 reset_PX4:
         memset(&eventBuffer[event.socketHandle], 0, sizeof(OS_Socket_Evt_t));
         err = SharedResourceMutex_unlock();
-        if (err)
-        {
+        if (err) {
             Debug_LOG_ERROR("Mutex unlock failed, code %d", err);
             return;
         }
@@ -239,8 +233,7 @@ reset_PX4:
         socket_PX4.callback,
         (void*) &socket_PX4
     );
-    if (err)
-    {
+    if (err) {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
     }
 }
@@ -292,8 +285,7 @@ void socket_VM_event_callback(void* ctx)
                          &socket_from->socket,
                          eventBuffer,
                          eventBufferSize,
-                         &numberOfSocketsWithEvents);    
-    ASSERT_EQ_OS_ERR(OS_SUCCESS, err);
+                         &numberOfSocketsWithEvents);
     if (err) {
         Debug_LOG_ERROR("failed to retrieve pending events. Error: %i", err);
         return;
@@ -353,7 +345,9 @@ void socket_VM_event_callback(void* ctx)
             printf("Set VM IP address to: IP: %s PORT: %d\n", socket_from->addr_partner.addr, ntohs(socket_from->addr_partner.port));
         }  else if (eventMask & OS_SOCK_EV_READ) {
             //Debug_LOG_ERROR("READ EVENT VM");
-            char buf[4096] = { 0 };
+            static char buf[1500] = { 0 };
+            static char ret_buf[1500] = { 0 };
+            size_t ret_len = 0;
             size_t len_requested = sizeof(buf);
             size_t len_actual = 0;
             
@@ -369,30 +363,30 @@ void socket_VM_event_callback(void* ctx)
             }
 
             //Applying filter to data from VM -> PX4
-            if (filter_mavlink_message(buf, len_actual)) {
-                Debug_LOG_ERROR("Packet dropped: violation of filter rules");
-                goto reset_VM;
-            }
+            filter_mavlink_message(buf, &len_actual, ret_buf, &ret_len);
+
+            printf("Len prior: %lu Len now: %lu\n", len_actual, ret_len);
 
             // Check if partner socket is ready to send
             if (!socket_PX4.conn_init) {
                     Debug_LOG_ERROR("Dropping Packet: Socket_VM notinitialized yet");
                 goto reset_VM;
             }
-                
-            err = OS_Socket_write(socket_to->handle, buf, len_actual, &len_actual);
-            if (err) {
-                Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
+            
+            if (ret_len) {
+                //send buffer with the filtered messages to PX4
+                err = OS_Socket_write(socket_to->handle, ret_buf, ret_len, &len_actual);
+                if (err) {
+                    Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
+                }
             }
-           
         } else {
             //Debug_LOG_ERROR("Received unhandled event!"); TODO: Handle
         }
 reset_VM:
         memset(&eventBuffer[event.socketHandle], 0, sizeof(OS_Socket_Evt_t));
         err = SharedResourceMutex_unlock();
-        if (err)
-        {
+        if (err) {
             Debug_LOG_ERROR("Mutex unlock failed, code %d", err);
             return;
         }
@@ -401,8 +395,7 @@ reset_VM:
     err = OS_Socket_regCallback(
         &socket_VM.socket,
         socket_VM.callback,
-        (void*) &socket_VM
-    );
+        (void*) &socket_VM);
     if (err)
     {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
@@ -439,10 +432,7 @@ void socket_init_VM(socket_ctx_t *socket_ctx) {
 
     int backlog = 10;
     //listen on socket
-    err = OS_Socket_listen(
-        socket_ctx->handle,
-        backlog
-    );
+    err = OS_Socket_listen(socket_ctx->handle, backlog);
     if (err) {
         Debug_LOG_ERROR("OS_Socket_listen() failed, code %d", err);
         OS_Socket_close(socket_ctx->handle);
