@@ -66,6 +66,11 @@ import <FileServer/FileServer.camkes>;
 // NIC virtio
 //----------------------------------------------------------------------
 
+#include "NIC_VirtioNetVm/NIC_VirtioNetVm.camkes"
+NIC_VirtioNetVm_COMPONENT_DEFINE(VirtioNIC, NIC_DRIVER_RINGBUFFER_SIZE, recv, send, virtio_event)
+
+
+/*
 #include <if_OS_Nic.camkes>
 
 component VirtioNIC {
@@ -74,9 +79,9 @@ component VirtioNIC {
     uses VirtQueueDrv send;
     emits Callback self;
     consumes Callback virtio_event;
-    // maybe uses      if_OS_Logger logServer_rpc;
+    maybe uses      if_OS_Logger logServer_rpc;
     maybe dataport  Buf          logServer_port;
-}
+}*/
 
 
 //----------------------------------------------------------------------

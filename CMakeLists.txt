@@ -25,7 +25,6 @@ set(LibUSB OFF CACHE BOOL "" FORCE)
 set(VmPCISupport ON CACHE BOOL "" FORCE)
 set(VmVirtioConsole OFF CACHE BOOL "" FORCE)
 set(VmVirtioNetVirtqueue ON CACHE BOOL "" FORCE)
-#set(VmVirtUartPL011 ON CACHE BOOL "" FORCE)
 
 include("plat/${PLATFORM}/plat.cmake")
 
@@ -122,13 +121,11 @@ DefineCAmkESVMFileServer(
 )
 
 #-------------------------------------------------------------------------------
-# Add the nic driver for virtio
-include("components/NIC_virtio/NIC_virtio.cmake")
 
 # Add platform specific nic
 include("plat/${PLATFORM}/plat_nic.cmake")
 
-NIC_virtio_DeclareCAmkESComponent(
+NIC_VirtioNetVm_DeclareCAmkESComponent(
     VirtioNIC
 )
 
@@ -168,7 +165,8 @@ DeclareCAmkESComponent(
     C_FLAGS
         -Wall
         -Werror
-        -Wno-address-of-packed-member # ignore MAVLink errors according to https://mavlink.io/en/mavgen_c/#build-warnings 
+        # ignore MAVLink errors according to https://mavlink.io/en/mavgen_c/#build-warnings 
+        -Wno-address-of-packed-member 
         -DOS_NETWORK_MAXIMUM_SOCKET_NO=8
     LIBS
         system_config
