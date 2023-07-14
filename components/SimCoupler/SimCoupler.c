@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023, HENSOLDT Cyber GmbH
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
  */
  
  

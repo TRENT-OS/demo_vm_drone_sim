@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
+
 #include <google/protobuf/message.h>
 #include <google/protobuf/util/json_util.h>
 #include <iostream>

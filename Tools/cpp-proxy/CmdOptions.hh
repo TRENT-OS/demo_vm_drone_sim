@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
+
 #pragma once
 
 #include <iostream>

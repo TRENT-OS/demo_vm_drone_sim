@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
+
 #include <iostream>
 #include <vector>
 #include <string>
