@@ -85,8 +85,8 @@ AddFileToOverlayDir(
 )
 
 AddFileToOverlayDir(
-    "takeoff_and_land"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/takeoff_and_land"
+    "drone_mission"
+    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/drone_mission"
     "etc/"
     overlay
 )

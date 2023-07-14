@@ -2,14 +2,10 @@
 #
 # Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
 #
-# SPDX-License-Identifier: BSD-2-Clause
-#
+ 
 
-echo "sending data to  192.168.1.2 7000"
-#echo "TEST" | nc 192.168.1.2 7000
+echo "Starting drone mission"
 
-echo "Takeoff and Landing"
-
-/etc/takeoff_and_land tcp://192.168.1.2:7000
+/etc/drone_mission tcp://192.168.1.2:7000
 
 echo "Done"
