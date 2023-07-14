@@ -183,7 +183,7 @@ DeclareCAmkESComponent(
     C_FLAGS
         -Wall
         -Werror
-        -DOS_NETWORK_MAXIMUM_SOCKET_NO=2
+        -DOS_NETWORK_MAXIMUM_SOCKET_NO=8
     LIBS
         system_config
         lib_debug

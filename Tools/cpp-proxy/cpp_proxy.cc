@@ -76,7 +76,7 @@ int get_socket() {
 	};
 
 	int sock_client;
-	if ((sock_client = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((sock_client = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		cerr << "Error: socket creation failed" << endl;
 		exit(-1);
 	}
