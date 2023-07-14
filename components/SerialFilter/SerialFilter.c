@@ -277,7 +277,7 @@ void socket_VM_event_callback(void* ctx)
     Debug_ASSERT(socket_from != &socket_PX4);
     socket_ctx_t * socket_to = &socket_PX4;
 
-    OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = {0};
+    OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = { 0 };
     int numberOfSocketsWithEvents = 0;
     size_t eventBufferSize = sizeof(eventBuffer);
 
@@ -298,19 +298,20 @@ void socket_VM_event_callback(void* ctx)
 
     for (int i = 0; i < numberOfSocketsWithEvents; i++) {
         OS_Socket_Evt_t event;
-        memcpy(&event, &eventBuffer[i], sizeof(event));
-        bool cond = event.socketHandle >= 0 && event.socketHandle < OS_NETWORK_MAXIMUM_SOCKET_NO;
-        if (!cond) {
-            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", event.socketHandle, i);
-            goto reset_VM;
-        }
-
+        memcpy(&event, &eventBuffer[i], sizeof(OS_Socket_Evt_t));
+        
         err = SharedResourceMutex_lock();
         if (err)
         {
             Debug_LOG_ERROR("Mutex lock failed, code %d", err);
             return;
         }
+        
+        if (!(event.socketHandle >= 0 && 
+              event.socketHandle < OS_NETWORK_MAXIMUM_SOCKET_NO)) {
+            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", event.socketHandle, i);
+            goto reset_VM;
+        }        
 
         uint8_t eventMask = event.eventMask;
         
@@ -383,6 +384,7 @@ void socket_VM_event_callback(void* ctx)
         } else {
             //Debug_LOG_ERROR("Received unhandled event!"); TODO: Handle
         }
+        
 reset_VM:
         memset(&eventBuffer[event.socketHandle], 0, sizeof(OS_Socket_Evt_t));
         err = SharedResourceMutex_unlock();
@@ -401,7 +403,6 @@ reset_VM:
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
     }
 }
-
 
 
 //----------------------------------------------------------------------
@@ -436,8 +437,6 @@ void socket_init_VM(socket_ctx_t *socket_ctx) {
     if (err) {
         Debug_LOG_ERROR("OS_Socket_listen() failed, code %d", err);
         OS_Socket_close(socket_ctx->handle);
-        // TODO: check if reset ev struct is required.
-        //nb_helper_reset_ev_struct_for_socket(srvHandle);
         return;
     }
     Debug_LOG_ERROR("Init successfull");
