@@ -158,10 +158,12 @@ DeclareCAmkESComponent(
     INCLUDES
         libs/mavgenlib
         libs/mavgenlib/common
+        libs/util
     SOURCES
         components/SerialFilter/SerialFilter.c
-        libs/mavlink_filter/mavlink_filter.c
-        libs/mavlink_filter/geofence.c
+        components/SerialFilter/mavlink_filter/mavlink_filter.c
+        components/SerialFilter/mavlink_filter/geofence.c
+        libs/util/socket_helper.c
     C_FLAGS
         -Wall
         -Werror
@@ -178,8 +180,11 @@ DeclareCAmkESComponent(
 
 DeclareCAmkESComponent(
     SimCoupler
+    INCLUDES
+        libs/util
     SOURCES
         components/SimCoupler/SimCoupler.c
+        libs/util/socket_helper.c
     C_FLAGS
         -Wall
         -Werror
