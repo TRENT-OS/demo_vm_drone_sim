@@ -14,7 +14,7 @@ typedef struct {
     OS_Socket_Handle_t          handle;
     OS_Socket_Handle_t          client_handle;
     const OS_Socket_Addr_t      addr;
-    OS_Socket_Addr_t      addr_partner;
+    OS_Socket_Addr_t            addr_partner;
     callbackFunc_t              callback;
     void *                      callback_ctx;
     bool                        conn_init;

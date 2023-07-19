@@ -141,8 +141,8 @@ void socket_PX4_event_callback(void *ctx) {
             }
 
             // Check if the connection to the vm is established
-            if (!socket_from->conn_init) {
-                Debug_LOG_ERROR("Connection to the vm is not initiated, data will be dropped");
+            if (!socket_to->conn_init) {
+                Debug_LOG_TRACE("Connection to the vm is not initiated, data will be dropped");
                 goto reset_PX4;
             }
 

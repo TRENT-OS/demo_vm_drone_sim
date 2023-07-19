@@ -267,7 +267,7 @@ void socket_VM_event_callback(void* ctx)
             //Applying filter to data from VM -> PX4
             filter_mavlink_message(buf, &len_actual, ret_buf, &ret_len);
 
-            printf("Len prior: %lu Len now: %lu\n", len_actual, ret_len);
+            Debug_LOG_TRACE("Len of packet prior to filetering: %lu Len now: %lu\n", len_actual, ret_len);
 
             // Check if partner socket is ready to send
             if (!socket_to->conn_init) {
