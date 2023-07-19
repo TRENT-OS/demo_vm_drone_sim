@@ -108,7 +108,11 @@ void print_current_output(int sockfd, std::string &raw_json_buf) {
     std::string json_str;
     if (slice_input_json(raw_json_buf, json_str)) {
         json data;
-        data = json::parse(json_str);
+        try {
+            data = json::parse(json_str);
+        } catch (...) {
+            return;
+        }
         std::cout << "GPS position\n" 
             << "lat: " << data["latitudeDeg"] 
             << "\nlon: " << data["longitudeDeg"]
@@ -200,15 +204,15 @@ int main(int argc, char** argv)
 
     print_current_output(sockfd, raw_json_buf);
     // Let it hover for a bit before landing again.
-    sleep_for(seconds(15));
-	std::cout << "Flying to valid location 48.05529681783492, 11.65173378612393" << std::endl;
-	action.goto_location(48.05529681783492, 11.65173378612393, NAN, NAN);
-    sleep_for(seconds(10));
+    sleep_for(seconds(5));
+	std::cout << "Flying to valid location 48.055050856124694, 11.652178200099572" << std::endl;
+	action.goto_location(48.055050856124694, 11.652178200099572, NAN, NAN);
+    sleep_for(seconds(5));
 
     print_current_output(sockfd, raw_json_buf);
 	std::cout << "Flying to invalid location 48.056529056548406, 11.652396728102497" << std::endl;
 	action.goto_location(48.056529056548406, 11.652396728102497, NAN, NAN);
-	sleep_for(seconds(10));
+	sleep_for(seconds(5));
 
     print_current_output(sockfd, raw_json_buf);
 	std::cout << "Returning to home" << std::endl;
