@@ -42,10 +42,13 @@ void callback(const protobuf::Message &_msg,
 		cout << _msg.DebugString() << endl;
 	}
 
+	json_string.push_back((char) 7);
+
 	if (send(cpp_proxy.socket, json_string.c_str(), json_string.size(), 0) < 0) {
 		cerr << "Error: Socket send failed. Closing the socket." << endl;
 		close(cpp_proxy.socket);
-		exit(-1);
+		cout << "Trying to establish a new connection" << endl;
+		cpp_proxy.socket = get_socket();
 	}
 }
 
