@@ -7,6 +7,8 @@
 #include "OS_Socket.h"
 #include "interfaces/if_OS_Socket.h"
 
+#define MTU 1500
+
 typedef void (*callbackFunc_t)(void*);
 
 typedef struct {

@@ -61,20 +61,21 @@ socket_ctx_t socket_PX4 = {
 
 
 void socket_PX4_event_callback(void *ctx) {
-    socket_ctx_t * socket_from = ctx;
+    Debug_ASSERT(NULL != ctx);
+    Debug_ASSERT(ctx != &socket_VM);
+    
+    socket_ctx_t * socket_from = ctx; 
     socket_ctx_t * socket_to   = &socket_VM;
     
-    OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = {0};
+    OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = { 0 };
     int numberOfSocketsWithEvents = 0;
 
-    size_t bufferSize = sizeof(eventBuffer);
+    OS_Error_t err;
 
-    OS_Error_t err = OS_Socket_getPendingEvents(
-        &socket_from->socket,
-        eventBuffer,
-        bufferSize,
-        &numberOfSocketsWithEvents);
-    if (err) {
+    if ((err = OS_Socket_getPendingEvents(&socket_from->socket,
+                                          eventBuffer,
+                                          sizeof(eventBuffer),
+                                          &numberOfSocketsWithEvents))) { 
         Debug_LOG_ERROR("failed to retrieve pending events. Error: %i", err);
         return;
     }
@@ -93,28 +94,29 @@ void socket_PX4_event_callback(void *ctx) {
             return;
         }
 
-        bool cond = event.socketHandle >= 0 && event.socketHandle < OS_NETWORK_MAXIMUM_SOCKET_NO;
-        if (!cond) {
-            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", event.socketHandle, i);
+        if (!(event.socketHandle >= 0 && 
+              event.socketHandle < OS_NETWORK_MAXIMUM_SOCKET_NO)) {
+            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", 
+                            event.socketHandle, i);
             goto reset_PX4;
         }
 
-
         uint8_t eventMask = event.eventMask;
-
         if (eventMask & OS_SOCK_EV_ERROR || eventMask & OS_SOCK_EV_FIN) {
-            Debug_LOG_ERROR("Received event: OS_SOCK_EV_ERROR || eventMask & OS_SOCK_EV_FIN");
-            err = OS_Socket_close(socket_from->handle);
-            if (err) {
+            Debug_LOG_TRACE("event: OS_SOCK_EV_ERROR or OS_SOCK_EV_FIN");
+
+            if ((err =OS_Socket_close(socket_from->handle))) {
                 Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
             }
             socket_from->conn_init = false;
-            return;
         }
 
         if (eventMask & OS_SOCK_EV_CONN_ACPT) {
-            Debug_LOG_ERROR("Conn accpt event");
-            err = OS_Socket_accept(socket_from->handle, &socket_from->client_handle, &socket_from->addr_partner);
+            Debug_LOG_TRACE("PX4 socket connection established");
+            err = OS_Socket_accept(socket_from->handle, 
+                                   &socket_from->client_handle, 
+                                   &socket_from->addr_partner);
+
             if (err == OS_ERROR_TRY_AGAIN) {
                 Debug_LOG_ERROR("Socket accept failed OS_ERROR_TRY_AGAIN");
                 
@@ -125,17 +127,17 @@ void socket_PX4_event_callback(void *ctx) {
                 goto reset_PX4;
             }
             socket_from->conn_init = true;
-        } else if (eventMask & OS_SOCK_EV_READ) {
-            static char buf[1500];
-            size_t len_actual;
-            size_t len_requested = sizeof(buf);
 
-            err = OS_Socket_read(
-                socket_from->client_handle,
-                buf, 
-                len_requested,
-                &len_actual);
-            if (err) {
+        } else if (eventMask & OS_SOCK_EV_READ) {
+            static char buf[MTU] = { 0 };
+
+            size_t len_requested = sizeof(buf);
+            size_t len_actual = 0;
+
+            if ((err = OS_Socket_read(socket_from->client_handle,
+                                      buf, 
+                                      len_requested,
+                                      &len_actual))) {
                 Debug_LOG_ERROR("OS_Socket_read() failed, code %d", err);
                 goto reset_PX4;
             }
@@ -146,28 +148,27 @@ void socket_PX4_event_callback(void *ctx) {
                 goto reset_PX4;
             }
 
-            err = OS_Socket_write(socket_to->client_handle, buf, len_actual, &len_actual);
-            if (err) {
+            if ((err = OS_Socket_write(socket_to->client_handle, 
+                                       buf, 
+                                       len_actual, 
+                                       &len_actual))) {
                 Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
             }
         }
         
 reset_PX4:
-        memset(&eventBuffer[socket_from->handle.handleID], 0, sizeof(OS_Socket_Evt_t));
+        memset(&eventBuffer[event.socketHandle], 0, sizeof(OS_Socket_Evt_t));
 
-        err = SharedResourceMutex_unlock();
-        if (err != OS_SUCCESS)
-        {
+        if ((err = SharedResourceMutex_unlock())) {
             Debug_LOG_ERROR("Mutex unlock failed, code %d", err);
             return;
         }
     }
     
     //register socket callback
-    if ((err = OS_Socket_regCallback(
-              &socket_from->socket,
-              socket_from->callback,
-              socket_from->callback_ctx))) {
+    if ((err = OS_Socket_regCallback(&socket_from->socket,
+                                     socket_from->callback,
+                                     socket_from->callback_ctx))) {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
     }
 }
@@ -185,14 +186,13 @@ void socket_VM_event_callback(void *ctx) {
 
     OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = { 0 };
     int numberOfSocketsWithEvents = 0;
-    size_t eventBufferSize = sizeof(eventBuffer);
 
-    OS_Error_t err = OS_Socket_getPendingEvents(
-        &socket_from->socket,
-        eventBuffer,
-        eventBufferSize,
-        &numberOfSocketsWithEvents);
-    if (err) {
+    OS_Error_t err;
+
+    if ((err = OS_Socket_getPendingEvents(&socket_from->socket,
+                                          eventBuffer,
+                                          sizeof(eventBuffer),
+                                          &numberOfSocketsWithEvents))) {
         Debug_LOG_ERROR("failed to retrieve pending events. Error: %i", err);
         return;
     }
@@ -206,48 +206,51 @@ void socket_VM_event_callback(void *ctx) {
         OS_Socket_Evt_t event;
         memcpy(&event, &eventBuffer[i], sizeof(OS_Socket_Evt_t));
 
-        if ((err = SharedResourceMutex_lock()))
-        {
+        if ((err = SharedResourceMutex_lock())) {
             Debug_LOG_ERROR("Mutex lock failed, code %d", err);
             return;
         }
 
         if (!(event.socketHandle >= 0 && 
               event.socketHandle < OS_NETWORK_MAXIMUM_SOCKET_NO)) {
-            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", event.socketHandle, i);
+            Debug_LOG_ERROR("Found invalid socket handle %d for event %d", 
+                            event.socketHandle, i);
             goto reset_VM;
         }
 
         uint8_t eventMask = event.eventMask;
-
         if (eventMask & OS_SOCK_EV_ERROR || eventMask & OS_SOCK_EV_FIN) {
-            Debug_LOG_ERROR("Received event: OS_SOCK_EV_ERROR || eventMask & OS_SOCK_EV_FIN");
-            err = OS_Socket_close(
-                    socket_from->handle.handleID == event.socketHandle ? socket_from->handle: 
-                    socket_from->client_handle);
-                if (err) {
-                    Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
-                }
+            Debug_LOG_TRACE("event: OS_SOCK_EV_ERROR or OS_SOCK_EV_FIN");
+
+            //Find socket handle through socket id
+            if ((err = OS_Socket_close(
+                        socket_from->handle.handleID == event.socketHandle ? socket_from->handle: 
+                        socket_from->client_handle))) {
+                Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
+            }
             socket_from->conn_init = false;
         }
 
         if (eventMask & OS_SOCK_EV_CONN_ACPT) {
             Debug_LOG_ERROR("Conn accpt event");
-            err = OS_Socket_accept(socket_from->handle, &socket_from->client_handle, &socket_from->addr_partner);
+            err = OS_Socket_accept(socket_from->handle, 
+                                   &socket_from->client_handle, 
+                                   &socket_from->addr_partner);
+
             if (err == OS_ERROR_TRY_AGAIN) {
                 Debug_LOG_ERROR("Socket accept failed OS_ERROR_TRY_AGAIN");
                 goto reset_VM;
             } else if (err) {
                 Debug_LOG_ERROR("OS_Socket_accept() failed, error %d", err);
-                err = OS_Socket_close(
-                    socket_from->handle.handleID == event.socketHandle ? socket_from->handle: 
-                    socket_from->client_handle);
-                if (err) {
+                
+                //Find socket handle through socket id
+                if ((err = OS_Socket_close(
+                            socket_from->handle.handleID == event.socketHandle ? socket_from->handle: 
+                            socket_from->client_handle))) {
                     Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
                 }
                 goto reset_VM;
             }
-            
             socket_from->conn_init = true;
         }
 
@@ -261,10 +264,9 @@ reset_VM:
     }
 
     //register socket callback
-    if ((err = OS_Socket_regCallback(
-              &socket_from->socket,
-              socket_from->callback,
-              socket_from->callback_ctx))) {
+    if ((err = OS_Socket_regCallback(&socket_from->socket,
+                                     socket_from->callback,
+                                     socket_from->callback_ctx))) {
         Debug_LOG_ERROR("OS_Socket_regCallback() failed, code %d", err);
     }
 }
@@ -274,6 +276,7 @@ reset_VM:
 //----------------------------------------------------------------------
 // Init
 //----------------------------------------------------------------------
+
 
 void post_init(void) {
     int backlog = 10;
