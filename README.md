@@ -8,7 +8,10 @@ The SimCoupler component relays Sensor data emitted by the Gazebo simulator. The
 
 Unfortunately does MAVSDK sometimes run into some issue, including a rare segfault condition and some unhandled errors. This sometimes requires multiple launches of the demo to complete successfully.
 
-This demo consists of the following components:
+
+### This demo consists of the following components:
+
+![Setup](doc/Drone_Project_Setup.png)
 
 - Gazebo Simulator (OSS) (Simulates a Quadcopter)       | host system
 - Px4 Flight Controler (OSS)                            | host system
@@ -21,12 +24,13 @@ This demo consists of the following components:
 
 These components together allow for the control of a simulated drone. 
 
+---
 
 ## Installation of the components
 The demonstration is developed on Ubuntu22.04, but should run fine under 20.04 as well.
 
 ### Gazebo
-(Gazebo instructions)[https://docs.px4.io/main/en/sim_gazebo_gz/]
+[Gazebo instructions](https://docs.px4.io/main/en/sim_gazebo_gz/)
 
 The gazebo repository must be added to apt and the gz-garden binary be installed.
 
@@ -60,6 +64,8 @@ This programm is part of the TRENTOS_SDK
 ```sh
 cd <trentos_sdk>/sdk/tools/gazebo_proxy
 ```
+
+---
 
 ## Launching of the demonstrator:
 Four different shell sessions should be started and the following command be executed in order.
