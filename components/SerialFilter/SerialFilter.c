@@ -322,8 +322,7 @@ reset_VM:
 // Init
 //----------------------------------------------------------------------
 
-void post_init(void)
-{
+void post_init(void) {
     int backlog = 10;
     if (init_socket_nb_server(&socket_VM, backlog)) {
         Debug_LOG_ERROR("Initialization of the VM socket failed");

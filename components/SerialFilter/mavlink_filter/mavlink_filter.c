@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
 #include <stdio.h>
 #include <sys/types.h>
 #include "lib_debug/Debug.h"
@@ -15,7 +19,7 @@ uint8_t chan = MAVLINK_COMM_0;
 bool check_coordinates(coordinate_t *cord) {
 	if (isnan(cord->latitude) || isnan(cord->longitude)) {
 		Debug_LOG_TRACE("MAVLink: Invalid Coordinate: NaN, NaN\n");
-		return false; // TODO: decide if packet needs to be dropped
+		return false;
 	}
 
 	//Check if coordinates are within the borders

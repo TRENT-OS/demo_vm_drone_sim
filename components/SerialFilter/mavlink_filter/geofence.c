@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
+ */
+
 #include <stdio.h>
 
 #include "mavlink_filter.h"
@@ -18,17 +22,4 @@ bool inside_geofence(point_t p) {
         }
     }
     return c;
-}
-
-void test_geofence() {
-	point_t a[] = {
-		{48.05501151866626, 11.652647249479202}, //Inside the fence
-		{48.255665901125575, 11.586522668102866} //Outside the fence
-		};
-	for (int i =0; i < 2; i++)
-	if (inside_geofence(a[i])) {
-		puts("Inside Geofence\n");
-	} else {
-		puts("Outside geofence");
-	}
 }

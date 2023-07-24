@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2023, Hensoldt Cyber GmbH
  *
  * OS libraries configurations
@@ -28,19 +28,6 @@
 // Memory
 #define Memory_Config_USE_STDLIB_ALLOC
 
-//-----------------------------------------------------------------------------
-// ChanMUX
-//-----------------------------------------------------------------------------
-
-#define CHANMUX_CHANNEL_NIC_CTRL      4
-#define CHANMUX_CHANNEL_NIC_DATA      5
-#define CHANMUX_CHANNEL_NVM           6
-
-//-----------------------------------------------------------------------------
-// ChanMUX clients
-//-----------------------------------------------------------------------------
-
-#define CHANMUX_ID_NIC        101
 
 // NIC driver
 #define NIC_DRIVER_RINGBUFFER_NUMBER_ELEMENTS 16
@@ -85,8 +72,3 @@
 #define HOME_POSITION {48.05502700126609, 11.652206077452211, NAN}
 
 #endif // SYSTEM_CONFIG_H_
-
-//-----------------------------------------------------------------------------
-// Memory
-//-----------------------------------------------------------------------------
-#define Memory_Config_USE_STDLIB_ALLOC
