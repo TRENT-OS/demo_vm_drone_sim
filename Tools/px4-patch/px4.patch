@@ -1,0 +1,55 @@
+diff --git a/Tools/simulation/gz/models/x500/model.sdf b/Tools/simulation/gz/models/x500/model.sdf
+index b544e01d49..9f22314173 100644
+--- a/Tools/simulation/gz/models/x500/model.sdf
++++ b/Tools/simulation/gz/models/x500/model.sdf
+@@ -231,6 +231,11 @@
+         <always_on>1</always_on>
+         <update_rate>250</update_rate>
+       </sensor>
++	<sensor name="navsat" type="navsat">
++		<always_on>1</always_on>
++		<update_rate>5</update_rate>
++		<topic>navsat</topic>
++	</sensor>
+     </link>
+     <link name="rotor_0">
+       <gravity>true</gravity>
+diff --git a/Tools/simulation/gz/worlds/default.sdf b/Tools/simulation/gz/worlds/default.sdf
+index 6ba98ab149..acee01803d 100644
+--- a/Tools/simulation/gz/worlds/default.sdf
++++ b/Tools/simulation/gz/worlds/default.sdf
+@@ -12,6 +12,7 @@
+     <plugin name='gz::sim::systems::Imu' filename='gz-sim-imu-system'/>
+     <plugin name='gz::sim::systems::AirPressure' filename='gz-sim-air-pressure-system'/>
+     <plugin name='gz::sim::systems::ApplyLinkWrench' filename='gz-sim-apply-link-wrench-system'/>
++    <plugin name='gz::sim::systems::NavSat' filename='gz-sim-navsat-system'/>
+     <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system'>
+       <render_engine>ogre2</render_engine>
+     </plugin>
+@@ -144,5 +145,13 @@
+         <falloff>0</falloff>
+       </spot>
+     </light>
++    <spherical_coordinates>
++    <surface_model>EARTH_WGS84</surface_model>
++	<world_frame_orientation>ENU</world_frame_orientation>
++	<latitude_deg>48.05502700126609</latitude_deg>
++	<longitude_deg> 11.652206077452211</longitude_deg>
++	<elevation>0</elevation>
++	<heading_deg>0</heading_deg>
++    </spherical_coordinates>
+   </world>
+ </sdf>
+diff --git a/run b/run
+new file mode 100755
+index 0000000000..4432b3aadb
+--- /dev/null
++++ b/run
+@@ -0,0 +1,7 @@
++#! /bin/sh
++export PX4_HOME_LAT=48.05502700126609
++export PX4_HOME_LON=11.652206077452211
++
++export GZ_PARTITION=relay
++export GZ_IP=192.168.222.2
++make px4_sitl gz_x500
