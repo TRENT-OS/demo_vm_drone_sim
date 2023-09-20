@@ -79,8 +79,8 @@ AddFileToOverlayDir(
     overlay
 )
 AddFileToOverlayDir(
-    "S90ping_test"
-    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/ping_test"
+    "S90mission_control"
+    "${CMAKE_CURRENT_SOURCE_DIR}/overlay_files/init_scripts/mission_control"
     "etc/init.d"
     overlay
 )
@@ -168,6 +168,7 @@ DeclareCAmkESComponent(
         os_core_api
         os_filesystem
 		os_socket_client
+        lib_io
 )
 
 DeclareCAmkESComponent(

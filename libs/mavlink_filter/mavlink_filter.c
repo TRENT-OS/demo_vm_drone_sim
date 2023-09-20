@@ -14,7 +14,7 @@ uint8_t chan = MAVLINK_COMM_0;
 
 void check_coordinates(coordinate_t *cord) {
 	if (isnan(cord->latitude) || isnan(cord->longitude)) {
-		puts("Invalid Coordinate \n");
+		puts("Coordinate in mesg not set \n");
 		return; // TODO: decide if packet needs to be dropped
 	}
 

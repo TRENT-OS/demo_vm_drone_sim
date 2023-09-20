@@ -32,7 +32,9 @@ typedef struct {
     const OS_Socket_Addr_t  addr_gcs_vm;
 } simcoupler_ctx_t;
 
+
 void socket_px4_receive_event_callback(void* ctx);
+
 
 simcoupler_ctx_t simcoupler_ctx = {
     .socket_px4_receive = IF_OS_SOCKET_ASSIGN(socket_PX4_nws),
@@ -51,6 +53,7 @@ simcoupler_ctx_t simcoupler_ctx = {
     }
 };
 
+
 OS_Error_t wait_for_nw_stack_init(const if_OS_Socket_t * const nw_sock) {
     OS_NetworkStack_State_t networkStackState;
     do {
@@ -67,8 +70,8 @@ OS_Error_t wait_for_nw_stack_init(const if_OS_Socket_t * const nw_sock) {
     return OS_SUCCESS;
 }
 
+
 void socket_px4_receive_event_callback(void *ctx) {
-    ZF_LOGE("Received Callback");
     OS_Error_t err;
     simcoupler_ctx_t * sc_ctx = ctx;
     
@@ -90,7 +93,6 @@ void socket_px4_receive_event_callback(void *ctx) {
     ASSERT_GT_INT(numberOfSocketsWithEvents, -1);
 
     for (int i = 0; i < numberOfSocketsWithEvents; i++) {
-        ZF_LOGE("HERE");
         char buf[4096] = {0};
         size_t len_requested = sizeof(buf);
         size_t len_actual = 0;
@@ -121,7 +123,6 @@ void socket_px4_receive_event_callback(void *ctx) {
         }
 
 reset:
-        ZF_LOGE("MEMSET");
         memset(&eventBuffer[sc_ctx->handle_px4_receive.handleID], 0, sizeof(OS_Socket_Evt_t));
 
         err = SharedResourceMutex_unlock();
@@ -131,9 +132,6 @@ reset:
             return;
         }
     }
-
-    
-    
     
     Debug_ASSERT(NULL != sc_ctx);
     err = OS_Socket_regCallback(
@@ -222,4 +220,3 @@ void post_init(void) {
 
     ZF_LOGE("Both network stacks are initialized.");
 }
-

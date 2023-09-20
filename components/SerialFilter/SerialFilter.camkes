@@ -1,8 +1,13 @@
 /*
- * Copyright (C) 2021-2023, HENSOLDT Cyber GmbH
+ * Copyright (C) 2023, HENSOLDT Cyber GmbH
  */
- 
+#pragma once
+
+import <if_OS_BlockingWrite.camkes>;
 #include <if_OS_Socket.camkes>
+
+
+#include "system_config.h"
  
 component SerialFilter {
 	// Context mutex
@@ -10,5 +15,10 @@ component SerialFilter {
 
 	// Networking
     IF_OS_SOCKET_USE(socket_GCS_nws)
-    IF_OS_SOCKET_USE(socket_PX4_nws)
+    
+    // UART
+    uses      if_OS_BlockingWrite  uart_rpc;
+    dataport  Buf(Uart_INPUT_FIFO_DATAPORT_SIZE)     uart_input_port;   // incoming UART data
+    dataport  Buf    uart_output_port;  // outgoing UART data
+    consumes  EventDataAvailable   uart_event;
 }

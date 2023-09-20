@@ -193,6 +193,7 @@ OS_Error_t nic_rpc_tx_data(size_t* pLen) {
 	return OS_SUCCESS;
 }
 
+
 //Data VM -> TRENTOS
 OS_Error_t nic_rpc_rx_data(size_t* pLen, size_t* framesRemaining) {
 	ctx_t *ctx = &the_ctx;

@@ -16,11 +16,17 @@ import <PutChar.idl4>;
 import <GetChar.idl4>;
 import <VirtQueues.idl4>;
 import <FileServerInterface.camkes>;
-
 import <if_OS_Logger.camkes>;
 
-//------------------------------------------
+
+
+//----------------------------------------------------------------------
+// Configuration files
+//----------------------------------------------------------------------
+
 #include "system_config.h"
+#include "plat_system_config.h"
+
 
 //----------------------------------------------------------------------
 // VM - Components
@@ -42,21 +48,25 @@ component VM {
 import <VirtQueue/VirtQueue.camkes>;
 import <FileServer/FileServer.camkes>;
 
+
 //----------------------------------------------------------------------
 // SerialFilter
 //----------------------------------------------------------------------
  
 #include "components/SerialFilter/SerialFilter.camkes"
 
+
 //----------------------------------------------------------------------
 // SimCoupler
-//----------------------------------------------------------------------
- 
+//---------------------------------------------------------------------- 
+
 #include "components/SimCoupler/SimCoupler.camkes"
+
 
 //----------------------------------------------------------------------
 // NIC chanmux
 //----------------------------------------------------------------------
+
 #include "NIC_ChanMux/NIC_ChanMux.camkes"
 NIC_ChanMux_COMPONENT_DEFINE(ChanMuxNIC, NIC_DRIVER_RINGBUFFER_SIZE)
 
@@ -70,6 +80,7 @@ ChanMux_UART_COMPONENT_DEFINE(
 //----------------------------------------------------------------------
 // NIC virtio
 //----------------------------------------------------------------------
+
 #include <if_OS_Nic.camkes>
 
 component VirtioNIC {
@@ -82,6 +93,7 @@ component VirtioNIC {
     maybe dataport  Buf          logServer_port;
 }
 
+
 //----------------------------------------------------------------------
 // Network Stack - Virtionet
 //----------------------------------------------------------------------
@@ -93,6 +105,7 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES
 )
 
+
 //----------------------------------------------------------------------
 // Network Stack - PX4
 //----------------------------------------------------------------------
@@ -101,6 +114,14 @@ NetworkStack_PicoTcp_COMPONENT_DEFINE(
     NetworkStack_PX4,
     NIC_DRIVER_RINGBUFFER_SIZE,
     NetworkStack_PicoTcp_NO_ADDITIONAL_INTERFACES)
+
+
+//----------------------------------------------------------------------
+// UART
+//----------------------------------------------------------------------
+
+#include "UART/Uart.camkes"
+
 
 //----------------------------------------------------------------------
 // TimeServer
@@ -211,9 +232,21 @@ assembly {
         
 		NetworkStack_PicoTcp_INSTANCE_CONNECT_CLIENTS(
             nwStack_PX4,
-            serialFilter, socket_PX4_nws,
             simCoupler, socket_PX4_nws
         )
+
+        //----------------------------------------------------------------------
+        // UART
+        //----------------------------------------------------------------------
+
+        component UART_IO uartDrv;
+
+        UART_INSTANCE_CONNECT_CLIENT(
+            uartDrv,
+            serialFilter.uart_rpc,
+            serialFilter.uart_input_port,
+            serialFilter.uart_output_port,
+            serialFilter.uart_event)
 
 		//----------------------------------------------------------------------
         // TimeServer
@@ -287,7 +320,6 @@ assembly {
         )
 
         NetworkStack_PicoTcp_CLIENT_ASSIGN_BADGES(
-            serialFilter, socket_PX4_nws,
             simCoupler, socket_PX4_nws
         )
 
@@ -299,7 +331,7 @@ assembly {
 
         NetworkStack_PicoTcp_INSTANCE_CONFIGURE_CLIENTS(
             nwStack_PX4,
-            1,
+            //1, ? 
             1
         )
     }

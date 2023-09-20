@@ -9,6 +9,9 @@
 #include "OS_Socket.h"
 #include "interfaces/if_OS_Socket.h"
 
+#include "OS_Dataport.h"
+#include "lib_io/FifoDataport.h"
+
 #include "lib_macros/Check.h"
 #include "lib_macros/Test.h"
 #include <arpa/inet.h>
@@ -17,9 +20,12 @@
 
 #include <camkes.h>
 
-//----------------------------------------------------------------------
-// Network
-//----------------------------------------------------------------------
+#include "common/mavlink.h"
+#include "mavlink_helpers.h"
+
+/* 1500 is the standard ethernet MTU at the network layer. */
+#define ETHER_MTU 1500
+
 
 typedef void (*callbackFunc_t)(void*);
 
@@ -34,12 +40,14 @@ typedef struct {
     OS_Socket_Handle_t      handle;
 } socket_ctx_t;
 
-
-void socket_GCS_event_callback(void* ctx);
-void socket_PX4_event_callback(void* ctx);
-
+typedef struct {
+    FifoDataport* uart_input_fifo;
+    uint8_t* uart_output_fifo;
+} uart_ctx_t;
 
 // VM       <--> TRENTOS
+void socket_GCS_event_callback(void* ctx);
+
 socket_ctx_t socket_GCS = {
     .socket = IF_OS_SOCKET_ASSIGN(socket_GCS_nws),
     .addr = {
@@ -56,33 +64,98 @@ socket_ctx_t socket_GCS = {
 };
 
 
-// TRENTOS  <--> PX4(Linux Host)
-socket_ctx_t socket_PX4 = {
-    .socket     = IF_OS_SOCKET_ASSIGN(socket_PX4_nws),
-    .addr       = {
-        .addr = PX4_TRENTOS_ADDR,
-        .port = PX4_TRENTOS_PORT
-    },
-    .addr_partner = {
-        .addr = PX4_DRONE_ADDR,
-        .port = PX4_DRONE_PORT
-    },
-    .callback = socket_PX4_event_callback,
-    .addr_set = true,
-    .addr_set   = true,
-    .filter     = false
-};
+mavlink_status_t mavlink_status;
+mavlink_message_t mavlink_msg;
+uint8_t mavlink_channel = MAVLINK_COMM_0;
+
+// VM       <--> TRENTOS
+void uart_PX4_event_callback(void* ctx);
+
+uart_ctx_t uart_PX4 = { 0 };
+
+
+
+void print_bytes(void *ptr, int size) 
+{
+    unsigned char *p = ptr;
+    int i;
+    for (i=0; i<size; i++) {
+        printf("%02hhX ", p[i]);
+    }
+    printf("\n");
+}
+
+
+void uart_PX4_write(char* bytes, size_t amount) {
+    uart_ctx_t *ctx = &uart_PX4;
+    
+    memcpy(ctx->uart_output_fifo, bytes, amount);
+    
+    uart_rpc_write(amount);
+}
+
+
+inline static void uart_PX4_pack_sent_msg(uint8_t byte) {
+    //Debug_LOG_ERROR("Received byte, parsing: %c", byte);
+    if (mavlink_parse_char(mavlink_channel, byte, &mavlink_msg, &mavlink_status)) {
+        Debug_LOG_ERROR("Complete Mavlink message received");
+        uint8_t buf[280] = { 0 };
+        uint16_t length = mavlink_msg_to_send_buffer(buf, &mavlink_msg);
+
+        if (!socket_GCS.addr_set) {
+            Debug_LOG_ERROR("Connection Partner not initialized!: Dropping Packet");
+            return;
+        }
+
+        size_t len = (size_t) length;
+        int err = OS_Socket_sendto(socket_GCS.handle, buf, len, &len, &socket_GCS.addr_partner);
+        if (err != OS_SUCCESS)
+        {
+            Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
+            err = OS_Socket_close(socket_GCS.handle);
+            if (err != OS_SUCCESS)
+            {
+                Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
+            }
+        }
+    }
+    /*
+    size_t len = 1;
+    int err = OS_Socket_sendto(socket_GCS.handle, &byte, len, &len, &socket_GCS.addr_partner);
+    if (err != OS_SUCCESS)
+    {
+        Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
+        err = OS_Socket_close(socket_GCS.handle);
+        if (err != OS_SUCCESS)
+        {
+            Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
+        }
+    }*/
+}
+
+
+int uart_PX4_read(uart_ctx_t *ctx) {
+    FifoDataport* fifo = ctx->uart_input_fifo;
+    void *buffer = NULL;
+    size_t avail = FifoDataport_getContiguous(fifo, &buffer);
+
+    for (int i = 0; i < avail; i++) {
+        uint8_t *byte = buffer + i;
+        uart_PX4_pack_sent_msg(*byte);        
+    }
+
+    FifoDataport_remove(fifo, avail);
+    //printf("SerialFilter: 3\n");
+    return 0;
+}
 
 
 void
 socket_event_callback(
     socket_ctx_t * socket_from,
-    socket_ctx_t * socket_to)
+    uart_ctx_t * uart_to)
 {
-    if (!socket_to->addr_set) {
-        Debug_LOG_ERROR("Connection has to be established by GCS");
-        return;
-    }
+    //printf("Socket event callback\n");
 
     OS_Socket_Evt_t eventBuffer[OS_NETWORK_MAXIMUM_SOCKET_NO] = {0};
     int numberOfSocketsWithEvents = 0;
@@ -103,7 +176,7 @@ socket_event_callback(
 
     for (int i = 0; i < numberOfSocketsWithEvents; i++)
     {
-        char buf[4096] = {0};
+        char buf[ETHER_MTU] = {0};
         size_t len_requested = sizeof(buf);
         size_t len_actual = 0;
         OS_Socket_Addr_t srcAddr = {0};
@@ -130,26 +203,18 @@ socket_event_callback(
             printf("Set GCS IP address to: IP: %s PORT: %d\n", srcAddr.addr, ntohs(srcAddr.port));
         }
 
-        if (socket_from->filter) {
-            //Applying filter to data from GCS -> PX4
-            if (filter_mavlink_message(buf, len_actual)) {
-                Debug_LOG_ERROR("Packet dropped: violation of filter rules");
-            }
-        }
+        //Debug_LOG_ERROR("\n\nRECEIVED MESSAGE FROM GCS!!!\n%s\n", buf);
 
-        err = OS_Socket_sendto(socket_to->handle, buf, len_actual, &len_actual, &socket_to->addr_partner); 
-        if (err != OS_SUCCESS)
-        {
-            Debug_LOG_ERROR("OS_Socket_sendto() failed, code %d", err);
-            err = OS_Socket_close(socket_from->handle);
-            if (err != OS_SUCCESS)
-            {
-                Debug_LOG_ERROR("OS_Socket_close() failed, code %d", err);
-            }
+        //Applying filter to data from GCS -> PX4
+        if (filter_mavlink_message(buf, len_actual)) {
+            Debug_LOG_ERROR("Packet dropped: violation of filter rules");
+            goto reset;
         }
+        
+        uart_PX4_write(buf, len_actual);
 
 reset:
-        memset(&eventBuffer[socket_to->handle.handleID], 0, sizeof(OS_Socket_Evt_t));
+        memset(&eventBuffer[socket_from->handle.handleID], 0, sizeof(OS_Socket_Evt_t));
 
         err = SharedResourceMutex_unlock();
         if (err != OS_SUCCESS)
@@ -174,22 +239,26 @@ reset:
 
 void socket_GCS_event_callback(void* ctx)
 {
-    Debug_ASSERT(NULL != ctx);
-    socket_ctx_t * socket_from = ctx; 
-    Debug_ASSERT(socket_from != &socket_PX4);
-    socket_ctx_t * socket_to = &socket_PX4;
-    socket_event_callback(socket_from, socket_to);
-}
-
-
-void socket_PX4_event_callback(void* ctx) 
-{
+    //Debug_LOG_ERROR("GCS event callback triggered!");
     Debug_ASSERT(NULL != ctx);
     socket_ctx_t * socket_from = ctx;
-    Debug_ASSERT(socket_from != &socket_GCS);
-    socket_ctx_t * socket_to = &socket_GCS;
-    socket_event_callback(socket_from, socket_to);
+    socket_event_callback(socket_from, &uart_PX4);
 }
+
+
+void uart_PX4_event_callback(void* ctx) 
+{
+    Debug_ASSERT(NULL != ctx);
+    //Debug_LOG_ERROR("UART callback triggered!");
+
+    uart_PX4_read(ctx);
+
+    int err = uart_event_reg_callback((void *) &uart_PX4_event_callback, (void *) ctx);
+    if (err) {
+        Debug_LOG_ERROR("uart_event_reg_callback() failed, code: %d", err);
+    }
+}
+
 
 OS_Error_t wait_for_nw_stack_init(const if_OS_Socket_t * const nw_sock) {
     OS_NetworkStack_State_t networkStackState;
@@ -254,8 +323,25 @@ void socket_init(socket_ctx_t *socket_ctx) {
 }
 
 
+void uart_init(void) {
+    uart_ctx_t *ctx = &uart_PX4;
+
+    OS_Dataport_t input_port  = OS_DATAPORT_ASSIGN(uart_input_port);
+    OS_Dataport_t output_port = OS_DATAPORT_ASSIGN(uart_output_port);
+
+    ctx->uart_input_fifo  = (FifoDataport *) OS_Dataport_getBuf(input_port);
+    ctx->uart_output_fifo = (uint8_t *) OS_Dataport_getBuf(output_port);
+    
+    int err = uart_event_reg_callback((void *) &uart_PX4_event_callback, (void *) ctx);
+    if (err) {
+        Debug_LOG_ERROR("uart_event_reg_callback() failed, code: %d", err);
+    }
+    Debug_LOG_ERROR("uart callback registered!");
+}
+
+
 void post_init(void)
 {
     socket_init(&socket_GCS);
-    socket_init(&socket_PX4);
+    uart_init();
 }
