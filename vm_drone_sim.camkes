@@ -68,20 +68,6 @@ import <FileServer/FileServer.camkes>;
 NIC_VirtioNetVm_COMPONENT_DEFINE(VirtioNIC, NIC_DRIVER_RINGBUFFER_SIZE, recv, send, virtio_event)
 
 
-/*
-#include <if_OS_Nic.camkes>
-
-component VirtioNIC {
-    IF_OS_NIC_PROVIDE(nic, NIC_DRIVER_RINGBUFFER_SIZE)
-    uses VirtQueueDev recv;
-    uses VirtQueueDrv send;
-    emits Callback self;
-    consumes Callback virtio_event;
-    maybe uses      if_OS_Logger logServer_rpc;
-    maybe dataport  Buf          logServer_port;
-}*/
-
-
 //----------------------------------------------------------------------
 // Network Stack - Virtionet
 //----------------------------------------------------------------------
