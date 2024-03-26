@@ -1,6 +1,6 @@
 # Drone Sim Demo SITL
 demo_trentos_drone_sim showcases the networking and virtualization features of TRENTOS:
-This demo contains of three major components, a LinuxVM running on the CamkesVMM in TRENTOS.
+This demo consists of three major components, a LinuxVM running on the CamkesVMM in TRENTOS.
 Inside the LinuxVM a drone Mission script based on MAVSDK emits MAVLink commands sending the drone on a mission with waypoints.
 The TRENTOS SerialFilter component is responsible to relay the MAVLink commands emitted from the LinuxVM to the PX4-Flightcontroller running on the host system.
 This is done in both directions. MAVLink commands emitted from the LinuxVM are filtered against a filter set and a geofence blocking potentially malicious commands emitted by a potentially infiltrated system.
